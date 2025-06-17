@@ -1,13 +1,9 @@
-
 #!/bin/bash
+# use curl or wget to download the version 2 1gram file with all terms starting with "1", googlebooks-eng-all-1gram-20120701-1.gz
 
-# use curl or wget to download the community notes, 
+#curl -O https://storage.googleapis.com/books/ngrams/books/googlebooks-eng-all-1gram-20120701-1.gz
+curl -o birdwatch-public-data/2025/06/16/notes/notes-00000.gz https://ton.twimg.com/birdwatch-public-data/2025/06/16/notes/notes-00000.zip
 
-ZIP_URL="https://ton.twimg.com/birdwatch-public-data/2025/06/16/notes/notes-00000.zip"
-ZIP_FILE="notes-00000.gz"
-
-# Download the file
-curl -o "$ZIP_FILE" "$ZIP_URL"
-
-# Update timestamp so Make or other systems don't re-download
-touch "$ZIP_FILE"
+# update the timestamp on the resulting file using touch  
+# do not remove, this will keep make happy and avoid re-downloading of the data once you have it
+touch birdwatch-public-data/2025/06/16/notes/notes-00000.gz
