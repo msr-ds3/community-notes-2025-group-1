@@ -2,7 +2,9 @@
 title: "Replication of birdwatch paper"
 author: "Drishya Shrestha & Naomi Beck"
 date: "`r Sys.Date()`"
-output: html_document
+output: 
+  html_document:
+    code_folding: show
 ---
  
  
@@ -18,50 +20,53 @@ library(ggplot2)
 theme_set(theme_bw())
 ```
  
- 
-```{r load_data}
+# The ratings and notes data from Jan23 to July 31, 2021
+# This is the same data used in the paper "Birdwatch: A Community-Based Approach to Misinformation"
+```{r load_data, echo=FALSE}
 setwd("./community-notes-2025-group-1")
 ratings <- read_tsv("ratings_jan23_to_july31.tsv")
-str(ratings)
 view(head(ratings))
 
 notes <- read_tsv("notes_jan23_to_july31.tsv")
 view(head(notes))
-summary(notes)
-str(notes)
- 
-```
+
+ ```
 
 # Figure 2: Number of users who responded “Yes” to the question “Did you link to sources you believe most people would consider trustworthy?”
-```{r figure_2, echo=FALSE}
-
-notes %>% 
- mutate(
+```{r figure_2, fig.width=4, fig.height=4, fig.align='center'}
+# Recode values to readable labels for trustworthy sources and classification
+notes %>%
+  mutate(
     trustworthySources = factor(
       trustworthySources,
-      levels = c(0, 1), #actual values
+      levels = c(0, 1), # actual values
       labels = c("Not Trustworthy", "Trustworthy")
     ),
     classification = factor(
       classification,
       levels = c("NOT_MISLEADING", "MISINFORMED_OR_POTENTIALLY_MISLEADING"), # aactual values
       labels = c("Not Misleading", "Misleading")
-    ))%>%
+    )) %>%
+
+    # Count number of notes in each group
     group_by(classification,trustworthySources) %>% 
     summarise(total_num = n(), .groups ="drop") %>% 
-        ggplot(aes(total_num,classification, fill= trustworthySources))+
-        geom_bar(stat="identity")+
-        labs(title = "Notes by Classification and Trustworthy Sources",
-       y = "Classification",
-       x = "Number of Notes"
-       ) +
-       scale_fill_manual(values = c("Not Trustworthy" = "#ffc70e", "Trustworthy" = "#1b58e7"))
+
+    # Create bar chart showing number of notes by classification and source trustworthines
+    ggplot(aes(total_num,classification, fill= trustworthySources)) +
+    geom_bar(stat="identity") +
+    labs(
+      title = "Notes by Classification and Trustworthy Sources",
+      y = "Classification",
+      x = "Number of Notes"
+      ) +
+    scale_fill_manual(values = c("Not Trustworthy" = "#ffc70e", "Trustworthy" = "#1b58e7"))
 
 ```
 
 
 # Figure 3: Number of Birdwatch notes per checkbox answer option in response to the question “Why do you believe this tweet may be misleading?”
-```{r figure_3, echo=FALSE}
+```{r figure_3, fig.width=4, fig.height=4, fig.align='center'}
 library(ggplot2)
 
 # Select relevant columns
@@ -100,11 +105,12 @@ ggplot(misleading_counts_df, aes(x = Count, y = reorder(Category, Count))) +
     x = "Number of Birdwatch Notes",
     y = NULL
   ) 
+
 ```
 
 
 # Figure4: Number of Birdwatch notes per check box answer optionin response to the question “Why do you believe this tweet is not misleading?”
-```{r figure_4, echo=FALSE}
+```{r figure_4, fig.width=4, fig.height=4, fig.align='center'}
 
 # Select relevant columns
 not_misleading_cols <- c(
@@ -137,136 +143,134 @@ ggplot(not_misleading_counts_df, aes(x = Count, y = reorder(Category, Count))) +
     x = "Number of Birdwatch Notes",
     y = NULL
   ) 
+
 ```
 
 
 
-#  Figure 5: CCDFs for word count in text explanations of Birdwatch notes.
-```{r figure_5c, echo=FALSE}
-
-
-
-graph_5c <- notes %>% mutate(
-    classification = factor(
-      classification,
-      levels = c("NOT_MISLEADING", "MISINFORMED_OR_POTENTIALLY_MISLEADING"), # aactual values
-      labels = c("Not Misleading", "Misleading")
-)) %>%
-    #counting the url as one word
-    mutate(word_count = str_count(summary, "\\w+"))%>%
-    view(head(10))
-
-summary(graph_5c)
-graph_5c
-
-filter(graph_5c, word_count == max(word_count, na.rm = TRUE)) %>%
-  select(summary, word_count) %>% view()
-
-    
-##GRAPH
+# Figure 5: CCDFs for word count in text explanations of Birdwatch notes.
+```{r figure_5c, fig.width=4, fig.height=4, fig.align='center'}
 notes %>%
   mutate(
+    # Recode classification labels
     classification = factor(
       classification, 
       levels = c("NOT_MISLEADING", "MISINFORMED_OR_POTENTIALLY_MISLEADING"),
       labels = c("Not Misleading", "Misleading")
     ),
+
+    # Replace URLs with placeholder so they count as one word
     summary_clean = str_replace_all(summary, "https?://[^\\s]+", "URL"),
+
+    # Count number of words in each summary
     word_count = str_count(summary_clean, "\\w+")
   ) %>%
-    group_by(classification, word_count) %>%
-    summarise(count = n(), .groups = "drop") %>%
-    group_by(classification) %>%
-    arrange(word_count) %>% 
-    mutate(ccdf = 1 - cumsum(count)/sum(count))%>% 
-    ggplot(aes(word_count,ccdf, color = classification))+
-    geom_line()  + scale_y_continuous(labels = percent)+
-    scale_y_log10()+
-    scale_color_manual(
-    values = c("Not Misleading" = "blue", "Misleading" = "red")
-  )
+  
+  # Count how many notes have each word count per classification
+  group_by(classification, word_count) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(classification) %>%
+  arrange(word_count) %>% 
 
+  # Compute Complementary CDF (CCDF)
+  mutate(ccdf = 1 - cumsum(count)/sum(count))%>% 
 
-filtered_graph_5c <- notes %>%
-  mutate(
-    classification = factor(
-      classification, 
-      levels = c("NOT_MISLEADING", "MISINFORMED_OR_POTENTIALLY_MISLEADING"),
-      labels = c("Not Misleading", "Misleading")
-    ),
-    summary_clean = str_replace_all(summary, "https?://[^\\s]+", "URL"),
-    word_count = str_count(summary_clean, "\\w+")
-  )
-    
-summary(filtered_graph_5c)
-
-
-
-
+  # Plot the CCDF on log scale for y-axis
+  ggplot(aes(word_count,ccdf, color = classification)) +
+  geom_line() + scale_y_continuous(labels = percent) +
+  scale_y_log10() +
+  scale_y_continuous(label=percent) +
+  labs(
+      x = "Word count",
+      y = "CCDF"
+  ) +
+  scale_color_manual(
+  values = c("Not Misleading" = "blue", "Misleading" = "red")
+)
 
 ```
 
 
 # Figure_7_CCDFs for (a)helpfulness ratio and (b)total votes.
-```{r figure_7a, echo=FALSE}
+```{r figure_7a, fig.width=4, fig.height=4, fig.align='center'}
+# Convert noteId to character to match formats between datasets
 notes_clean <- notes %>% mutate(noteId = as.character(noteId))
+
+# Merge notes and ratings data
 notes_ratings <- left_join(notes_clean, ratings, by = "noteId")
 view(head(notes_ratings,100))
 view(head(ratings, 100))
+
+# Compute CCDF of helpfulness ratio by classification
 notes_ratings %>%  
-    mutate(
+  mutate(
+    # recode classification labels for clarity
     classification = factor(
-      classification, 
-      levels = c("NOT_MISLEADING", "MISINFORMED_OR_POTENTIALLY_MISLEADING"),
-      labels = c("Not Misleading", "Misleading")
+    classification, 
+    levels = c("NOT_MISLEADING", "MISINFORMED_OR_POTENTIALLY_MISLEADING"),
+    labels = c("Not Misleading", "Misleading")
     ),
-    #To account for both versions creating a new column which tells if its helpful or not 
-   helpful_num = as.numeric(helpfulnessLevel %in% c("HELPFUL", "SOMEWHAT_HELPFUL") | helpful %in% c("1")))%>% 
-   select(noteId,helpful_num, classification) %>%
-   #
+    # Create binary helpfulness variable that accounts for both versions of helpfulness
+    helpful_num = as.numeric(helpfulnessLevel %in% c("HELPFUL", "SOMEWHAT_HELPFUL") | helpful %in% c("1"))) %>% 
+  select(noteId,helpful_num, classification) %>% 
 
-    group_by(noteId, classification)%>%
-    summarise(helpfulness_ratio = mean(helpful_num, na.rm=TRUE),.groups = "drop")%>%
+  # Group by note and classification to calculate the helpfulness ratio
+  group_by(noteId, classification) %>%
+  summarise(helpfulness_ratio = mean(helpful_num, na.rm=TRUE),.groups = "drop") %>%
 
-    group_by(classification)%>%
-    arrange(helpfulness_ratio)%>%
-    mutate(ccdf = 1 - cumsum(helpfulness_ratio)/sum(helpfulness_ratio))%>%
+  # Calculate Complementary CDF (CCDF) for each classification
+  group_by(classification) %>%
+  arrange(helpfulness_ratio) %>%
+  mutate(ccdf = 1 - cumsum(helpfulness_ratio)/sum(helpfulness_ratio))%>%
 
-    ggplot(aes(helpfulness_ratio, ccdf, color = classification))+
-    geom_line() + scale_y_continuous(labels = percent)+
-    scale_color_manual(values = c("Not Misleading" = "blue", "Misleading" = "red")
+  # Plot CCDF of helpfulness ratio
+  ggplot(aes(helpfulness_ratio, ccdf, color = classification)) +
+  geom_line() + scale_y_continuous(labels = percent) +
+  scale_color_manual(values = c("Not Misleading" = "blue", "Misleading" = "red")
 )
 
 ```
 
 
-```{r figure_7b, echo=FALSE}
+```{r figure_7b, fig.width=4, fig.height=4, fig.align='center'}
+# Compute CCDF of total votes per note by classification
 notes_ratings %>%  
-    mutate(
+  # Recode classification labels for clarity
+  mutate(
     classification = factor(
-      classification, 
-      levels = c("NOT_MISLEADING", "MISINFORMED_OR_POTENTIALLY_MISLEADING"),
-      labels = c("Not Misleading", "Misleading")
+    classification, 
+    levels = c("NOT_MISLEADING", "MISINFORMED_OR_POTENTIALLY_MISLEADING"),
+    labels = c("Not Misleading", "Misleading")
     ),
+    # Convert vote counts to numeric
     helpful = as.numeric(helpful),
-    notHelpful = as.numeric(notHelpful))%>%
+    notHelpful = as.numeric(notHelpful)) %>%
+
+    # Sum total votes (helpful + notHelpful) for each note
     group_by(noteId,classification)%>%
     summarise(total_votes = sum(helpful, na.rm = TRUE)+sum(notHelpful, na.rm = TRUE), .groups = "drop") %>%
+    
+    # Count how many notes have each total vote count, by classification
     group_by(classification, total_votes) %>%
     summarise(count = n(), .groups = "drop") %>%
-    group_by(classification)%>%
-    arrange(total_votes)%>%
-    mutate(ccdf = 1 - (row_number() - 1) / n())%>%
-    ggplot(aes(total_votes, ccdf, color = classification))+
+    
+    # Calculate CCDF
+    group_by(classification) %>%
+    arrange(total_votes) %>%
+    mutate(ccdf = 1 - (row_number() - 1) / n()) %>%
+
+    # Plot CCDF of total votes
+    ggplot(aes(total_votes, ccdf, color = classification)) +
     geom_line() + scale_y_continuous(labels = percent) +
     scale_color_manual(values = c("Not Misleading" = "blue", "Misleading" = "red")
 )
+
 ```
 
 
 
 # Figure8: Number of ratings per check box answer optionin response to the prompt “What about this note was helpful to you?”
-```{r figure_8, echo=FALSE}
+```{r figure_8, fig.width=4, fig.height=4, fig.align='center'}
 # Select relevant columns
 helpful_cols <- c(
   "helpfulInformative",
@@ -309,7 +313,7 @@ ggplot(helpful_counts_df, aes(x = Count, y = reorder(Category, Count))) +
 
 
 # Figure 9: Number of ratings per check box answer option in response to the prompt “Help us understand why this note was not helpful to you?”
-```{r figure_9, echo=FALSE}
+```{r figure_9, fig.width=4, fig.height=4, fig.align='center'}
 # Select relevant columns
 not_helpful_cols <- c(
     "notHelpfulSourcesMissingOrUnreliable",
@@ -353,4 +357,5 @@ ggplot(not_helpful_counts_df, aes(x = Count, y = reorder(Category, Count))) +
     x = "Number of Ratings",
     y = NULL
   ) 
+
 ```
