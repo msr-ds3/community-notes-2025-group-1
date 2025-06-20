@@ -415,7 +415,101 @@ ggplot(not_helpful_counts_df, aes(x = Count, y = reorder(Category, Count))) +
 This figure shows standardized regression coefficients predicting the helpfulness ratio of Birdwatch notes, with 99% confidence intervals. The results suggest that notes marked as *Misleading*, those citing *Trustworthy sources*, and longer notes (higher *word count*) are associated with higher helpfulness ratings. In contrast, verified accounts and follower/friend counts appear to have minimal predictive value in this context.
 
 ```{r figure_10, fig.width=6, fig.height=4, fig.align='center'}
-# PUT REGRESSION CODE HERE
+source_tweet_object<- load("source_tweets.Rdata")
+source_tweet <- get(source_tweet_object)
+summary(source_tweet)
+formula(source_tweet)
+
+unique(model_summary$term)
+#Cleaning and merging the required features with the source tweet
+notes_ratings_w_factors <- notes_ratings%>%
+    mutate(
+    classification = factor(
+      classification, 
+      levels = c("NOT_MISLEADING", "MISINFORMED_OR_POTENTIALLY_MISLEADING"),
+      labels = c("Not Misleading", "Misleading")
+    ),
+    trustworthySources = as.factor(trustworthySources),
+    noteId = as.numeric(noteId),
+   #Did not filter the url as one word 
+    word_count = str_count(summary, "\\w+"),
+    helpful = as.numeric(helpful), #will be using v1 helpful columns
+    notHelpful = as.numeric(notHelpful))%>%
+    group_by(noteId)%>%
+    mutate(total_votes = sum(helpful, na.rm = TRUE)+sum(notHelpful, na.rm = TRUE)) %>%
+    mutate(helpfulness_ratio = helpful / total_votes )%>%
+    ungroup()%>%
+    filter(!is.na(helpfulness_ratio))%>% 
+    select(noteId, classification,helpfulness_ratio, word_count, trustworthySources, helpful)
+
+
+str(notes_ratings_w_factors)
+source_w_notes_ratings <- left_join(notes_ratings_w_factors, source_tweet, by= "noteId")
+str(source_w_notes_ratings) 
+
+
+
+# Set cutoff date for calculating account age
+cutoff_date <- as.Date("2021-07-01")
+
+#Preprocessing more
+source_w_notes_ratings <- source_w_notes_ratings %>%  
+  mutate(
+    account_age_days = as.numeric(difftime(cutoff_date, source_account_created_at, units = "days")),
+    source_verified = factor(source_verified),
+  )
+
+
+
+# STEP 2: Standardization and encoding
+rec <- recipe(helpful ~ classification + trustworthySources + word_count +
+                source_followers_count + source_friends_count + source_verified + account_age_days,
+              data = source_w_notes_ratings) %>%
+  step_normalize(all_numeric_predictors()) %>%
+  step_dummy(all_nominal_predictors()) %>%
+  prep()
+
+df_std <- bake(rec, new_data = NULL)
+
+# STEP 3: GLM
+model <- glm(helpful ~ ., data = df_std, family = gaussian())
+
+# STEP 4: Coefficients with 99% Confidence Intervals
+model_summary <- tidy(model, conf.int = TRUE, conf.level = 0.99)
+
+
+# STEP 5: Clean Labels
+label_map <- c(
+  "trustworthySources_X1" = "Trustworthy Sources",
+  "word_count" = "Word Count",
+  "source_followers_count" = "Followers Count",
+  "source_friends_count" = "Followees Count",
+  "source_verified_TRUE." = "Verified Account",
+  "account_age_days" = "Account Age (Days)",
+  "classification_Misleading" = "Classification: Misleading"
+)
+model_summary <- model_summary %>%
+  filter(term != "(Intercept)") %>%
+  mutate(
+    term_clean = recode(term, !!!label_map)
+  )
+
+
+# STEP 6: Visualization
+model_summary %>%
+  ggplot(aes(x = reorder(term_clean, estimate), y = estimate)) +
+  geom_point(size = 3, color = "black") +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.3, color = "steelblue") +
+  labs(
+    title = "Standardized GLM Coefficients for DV: Helpfulness"
+  ) +
+  theme_minimal(base_size = 14)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+
+table(source_w_notes_ratings$source_verified)
+
+
 ```
 
 <br><br>
