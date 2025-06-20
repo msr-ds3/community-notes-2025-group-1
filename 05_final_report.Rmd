@@ -1,10 +1,13 @@
 ---
-title: "Replication of birdwatch paper"
-author: "Drishya Shrestha & Naomi Beck"
+title: "Replication of \"Community-Based Fact-Checking on Twitter's Birdwatch Platform\""
+author: "Drishya Shrestha and Naomi Beck (Microsoft DS3 2025)"
 date: "`r Sys.Date()`"
 output: 
   html_document:
-    code_folding: show
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    code_folding: hide
 ---
  
  
@@ -20,20 +23,41 @@ library(ggplot2)
 theme_set(theme_bw())
 ```
  
-# The ratings and notes data from Jan23 to July 31, 2021
-# This is the same data used in the paper "Birdwatch: A Community-Based Approach to Misinformation"
-```{r load_data, echo=FALSE}
-setwd("./community-notes-2025-group-1")
+
+```{r load_data, include=FALSE}
+# load the the ratings and notes data from Jan23 to July 31, 2021
 ratings <- read_tsv("ratings_jan23_to_july31.tsv")
 view(head(ratings))
 
 notes <- read_tsv("notes_jan23_to_july31.tsv")
 view(head(notes))
 
- ```
+```
 
-# Figure 2: Number of users who responded “Yes” to the question “Did you link to sources you believe most people would consider trustworthy?”
-```{r figure_2, fig.width=4, fig.height=4, fig.align='center'}
+
+### Introduction
+
+This report replicates findings from the study [*“Community-Based Fact-Checking on Twitter’s Birdwatch Platform”*](https://arxiv.org/pdf/2104.07175), which explores how users collaboratively address misinformation on social media. Birdwatch, launched by Twitter in early 2021, invited users to add notes to tweets that may be misleading, offering corrections, context, or clarification. 
+These notes are then rated by others for helpfulness, enabling a community-driven approach to content moderation.
+
+
+
+Our replication uses two key datasets released by Twitter:
+
+- **Notes dataset** with `r nrow(notes)` community-contributed notes, each providing a textual explanation and a classification of whether the tweet is misleading.
+- **Ratings dataset** with `r nrow(ratings)` helpfulness ratings submitted by other users in response to these notes.
+
+Both datasets span the period from Jaunuary 23, 2021 to July 2021, matching the timeframe analyzed in the original Birdwatch paper.
+
+This replication focuses on reproducing major figures and descriptive statistics from the original study using R. By doing so, we assess the robustness of the study’s insights and explore how design features like sourcing, clarity, and tone relate to perceived helpfulness in the context of misinformation reporting.
+
+<br><br>
+
+### Figure 2. Trustworthy Sources by Classification
+
+This figure shows how often notes marked as *Misleading* or *Not Misleading* included sources the writer believed to be trustworthy. The majority of *Misleading* notes linked to trustworthy sources, consistent with findings in the original Birdwatch paper that even notes flagging misinformation often cite credible material to support their claims.
+
+```{r figure_2, fig.width=8, fig.height=4, fig.align='center'}
 # Recode values to readable labels for trustworthy sources and classification
 notes %>%
   mutate(
@@ -65,8 +89,13 @@ notes %>%
 ```
 
 
-# Figure 3: Number of Birdwatch notes per checkbox answer option in response to the question “Why do you believe this tweet may be misleading?”
-```{r figure_3, fig.width=4, fig.height=4, fig.align='center'}
+<br><br>
+
+### Figure 3. Reasons Users Flagged Tweets as Misleading
+
+This figure shows how frequently each predefined reason was selected in Birdwatch notes explaining why a tweet might be misleading. The top three reasons — *Factual error*, *Missing important context*, and *Unverified claim as fact* — were selected far more often than others. This aligns with the Birdwatch paper’s findings that users primarily focus on correcting factual inaccuracy and contextual gaps rather than less common concerns like *Satire* or *Manipulated media*.
+
+```{r figure_3, fig.width=8, fig.height=4, fig.align='center', error = FALSE, warning=FALSE}
 library(ggplot2)
 
 # Select relevant columns
@@ -82,7 +111,6 @@ misleading_cols <- c(
 
 # Tally up the 1s
 misleading_counts <- colSums(notes[misleading_cols] == 1, na.rm = TRUE)
-misleading_counts
 
 # Create a data frame for plotting
 misleading_counts_df <- data.frame(
@@ -108,9 +136,13 @@ ggplot(misleading_counts_df, aes(x = Count, y = reorder(Category, Count))) +
 
 ```
 
+<br><br>
 
-# Figure4: Number of Birdwatch notes per check box answer optionin response to the question “Why do you believe this tweet is not misleading?”
-```{r figure_4, fig.width=4, fig.height=4, fig.align='center'}
+### Figure 4. Reasons Users Believed Tweets Were Not Misleading
+
+This figure shows the distribution of reasons users selected when explaining why a tweet was *not misleading*. Most notes cited the tweet as *Factually correct*, with much smaller numbers citing reasons like *Personal opinion* or *Clearly satire*. This pattern suggests users are more confident marking tweets as accurate when they align with objective facts, echoing the Birdwatch paper’s observation that factual accuracy plays a major role in users’ trust assessments.
+
+```{r figure_4, fig.width=8, fig.height=4, fig.align='center'}
 
 # Select relevant columns
 not_misleading_cols <- c(
@@ -146,10 +178,13 @@ ggplot(not_misleading_counts_df, aes(x = Count, y = reorder(Category, Count))) +
 
 ```
 
+<br><br>
 
+### Figure 5. CCDFs of Word Count in Explanations of Birdwatch Notes
 
-# Figure 5: CCDFs for word count in text explanations of Birdwatch notes.
-```{r figure_5c, fig.width=4, fig.height=4, fig.align='center'}
+This figure compares the complementary cumulative distribution functions (CCDFs) for word counts in *Misleading* and *Not Misleading* notes. Notes marked as *Misleading* tend to be longer, with heavier tails in the distribution, suggesting that users invest more effort when explaining why content is problematic. This mirrors the Birdwatch paper’s finding that critical notes often include detailed justifications, while supportive notes are more concise.
+
+```{r figure_5c, fig.width=6, fig.height=4, fig.align='center', error = FALSE, warning=FALSE}
 notes %>%
   mutate(
     # Recode classification labels
@@ -177,9 +212,9 @@ notes %>%
 
   # Plot the CCDF on log scale for y-axis
   ggplot(aes(word_count,ccdf, color = classification)) +
-  geom_line() + scale_y_continuous(labels = percent) +
+  geom_line() + 
   scale_y_log10() +
-  scale_y_continuous(label=percent) +
+  
   labs(
       x = "Word count",
       y = "CCDF"
@@ -190,16 +225,18 @@ notes %>%
 
 ```
 
+<br><br>
 
-# Figure_7_CCDFs for (a)helpfulness ratio and (b)total votes.
-```{r figure_7a, fig.width=4, fig.height=4, fig.align='center'}
+### Figure 7a. CCDF of Helpfulness Ratio for Birdwatch Notes
+
+This figure shows the complementary cumulative distribution function (CCDF) of the helpfulness ratio (proportion of raters marking a note *helpful*) for notes classified as *Misleading* (red) and *Not Misleading* (blue). Notes flagged as *Misleading* tend to have **higher helpfulness ratios**, with their CCDF curve lying to the right of *Not Misleading* notes—this aligns with findings that “notes reporting misleading tweets tend to have a higher helpfulness ratio” :contentReference[oaicite:3]{index=3}.
+
+```{r figure_7a, fig.width=6, fig.height=4, fig.align='center'}
 # Convert noteId to character to match formats between datasets
 notes_clean <- notes %>% mutate(noteId = as.character(noteId))
 
 # Merge notes and ratings data
 notes_ratings <- left_join(notes_clean, ratings, by = "noteId")
-view(head(notes_ratings,100))
-view(head(ratings, 100))
 
 # Compute CCDF of helpfulness ratio by classification
 notes_ratings %>%  
@@ -221,7 +258,7 @@ notes_ratings %>%
   # Calculate Complementary CDF (CCDF) for each classification
   group_by(classification) %>%
   arrange(helpfulness_ratio) %>%
-  mutate(ccdf = 1 - cumsum(helpfulness_ratio)/sum(helpfulness_ratio))%>%
+  mutate(ccdf = 1 - cumsum(helpfulness_ratio)/sum(helpfulness_ratio)) %>%
 
   # Plot CCDF of helpfulness ratio
   ggplot(aes(helpfulness_ratio, ccdf, color = classification)) +
@@ -231,8 +268,13 @@ notes_ratings %>%
 
 ```
 
+<br><br>
 
-```{r figure_7b, fig.width=4, fig.height=4, fig.align='center'}
+### Figure 7b. CCDF of Total Votes for Birdwatch Notes
+
+This figure shows the complementary cumulative distribution function (CCDF) of the total number of helpfulness votes received by notes classified as *Misleading* (red) and *Not Misleading* (blue). Notes marked *Not Misleading* received more votes overall, likely because these notes are shorter and easier to rate quickly. This supports the Birdwatch paper’s suggestion that less effortful notes tend to accumulate more ratings, even if they're less detailed.
+
+```{r figure_7b, fig.width=6, fig.height=4, fig.align='center'}
 # Compute CCDF of total votes per note by classification
 notes_ratings %>%  
   # Recode classification labels for clarity
@@ -267,10 +309,13 @@ notes_ratings %>%
 
 ```
 
+<br><br>
 
+### Figure 8. Helpful Attributes Cited in Birdwatch Note Ratings
 
-# Figure8: Number of ratings per check box answer optionin response to the prompt “What about this note was helpful to you?”
-```{r figure_8, fig.width=4, fig.height=4, fig.align='center'}
+This figure shows how often each checkbox option was selected by users when rating a note as helpful. The most commonly cited qualities were that the note was *Clear*, provided *Good sources*, and was *Informative*. Less frequently, users appreciated *Empathy*, *Addressing the claim*, and *Unique context*. These results highlight that clarity and sourcing are especially valued by raters, reflecting the Birdwatch paper’s emphasis on transparency and factual grounding in helpful notes.
+
+```{r figure_8, fig.width=8, fig.height=4, fig.align='center'}
 # Select relevant columns
 helpful_cols <- c(
   "helpfulInformative",
@@ -311,9 +356,12 @@ ggplot(helpful_counts_df, aes(x = Count, y = reorder(Category, Count))) +
 
 ```
 
+<br><br>
 
-# Figure 9: Number of ratings per check box answer option in response to the prompt “Help us understand why this note was not helpful to you?”
-```{r figure_9, fig.width=4, fig.height=4, fig.align='center'}
+### Figure 9. Unhelpful Attributes Cited in Birdwatch Note Ratings
+
+This figure shows how often each checkbox option was selected by users when explaining why a note was not helpful. The top reasons were that the note was *Missing key points*, had *Sources missing or unreliable*, or contained *Opinion, speculation, or bias*. These responses suggest that raters are especially critical when notes lack evidence or completeness. The findings reinforce the Birdwatch paper’s emphasis on the importance of sourcing and neutrality in promoting perceived helpfulness.
+```{r figure_9, fig.width=8, fig.height=4, fig.align='center'}
 # Select relevant columns
 not_helpful_cols <- c(
     "notHelpfulSourcesMissingOrUnreliable",
@@ -359,3 +407,19 @@ ggplot(not_helpful_counts_df, aes(x = Count, y = reorder(Category, Count))) +
   ) 
 
 ```
+
+<br><br>
+
+### Figure 10. Regression Predictors of Helpfulness Ratio
+
+This figure shows standardized regression coefficients predicting the helpfulness ratio of Birdwatch notes, with 99% confidence intervals. The results suggest that notes marked as *Misleading*, those citing *Trustworthy sources*, and longer notes (higher *word count*) are associated with higher helpfulness ratings. In contrast, verified accounts and follower/friend counts appear to have minimal predictive value in this context.
+
+```{r figure_10, fig.width=6, fig.height=4, fig.align='center'}
+# PUT REGRESSION CODE HERE
+```
+
+<br><br>
+
+### Conclusion
+
+This replication study confirms key findings from the original Birdwatch paper, demonstrating that community-driven fact-checking is a viable strategy for addressing misinformation on social media. By analyzing notes and ratings from early 2021, we observed patterns consistent with the original research — including the frequent use of trustworthy sources, the impact of note clarity and tone on perceived helpfulness, and differences in how users respond to misleading versus accurate content.
