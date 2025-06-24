@@ -18,6 +18,7 @@ library(tidyverse)
 library(scales)
 library(modelr)
 library(readr)
+library(recipes)
 library(ggplot2)
 
 theme_set(theme_bw())
@@ -95,7 +96,7 @@ notes %>%
 
 This figure shows how frequently each predefined reason was selected in Birdwatch notes explaining why a tweet might be misleading. The top three reasons — *Factual error*, *Missing important context*, and *Unverified claim as fact* — were selected far more often than others. This aligns with the Birdwatch paper’s findings that users primarily focus on correcting factual inaccuracy and contextual gaps rather than less common concerns like *Satire* or *Manipulated media*.
 
-```{r figure_3, fig.width=8, fig.height=4, fig.align='center', error = FALSE, warning=FALSE}
+```{r figure_3, fig.width=8, fig.height=4, fig.align='center', error = FALSE, warning =FALSE}
 library(ggplot2)
 
 # Select relevant columns
@@ -184,7 +185,7 @@ ggplot(not_misleading_counts_df, aes(x = Count, y = reorder(Category, Count))) +
 
 This figure compares the complementary cumulative distribution functions (CCDFs) for word counts in *Misleading* and *Not Misleading* notes. Notes marked as *Misleading* tend to be longer, with heavier tails in the distribution, suggesting that users invest more effort when explaining why content is problematic. This mirrors the Birdwatch paper’s finding that critical notes often include detailed justifications, while supportive notes are more concise.
 
-```{r figure_5c, fig.width=6, fig.height=4, fig.align='center', error = FALSE, warning=FALSE}
+```{r figure_5c, fig.width=6, fig.height=4, fig.align='center', error = FALSE, warning = FALSE}
 notes %>%
   mutate(
     # Recode classification labels
@@ -414,13 +415,13 @@ ggplot(not_helpful_counts_df, aes(x = Count, y = reorder(Category, Count))) +
 
 This figure shows standardized regression coefficients predicting the helpfulness ratio of Birdwatch notes, with 99% confidence intervals. The results suggest that notes marked as *Misleading*, those citing *Trustworthy sources*, and longer notes (higher *word count*) are associated with higher helpfulness ratings. In contrast, verified accounts and follower/friend counts appear to have minimal predictive value in this context.
 
-```{r figure_10, fig.width=6, fig.height=4, fig.align='center'}
+```{r figure_10, error=FALSE, fig.align='center', fig.height=3.5, fig.width=5, warning=FALSE}
 source_tweet_object<- load("source_tweets.Rdata")
 source_tweet <- get(source_tweet_object)
-summary(source_tweet)
-formula(source_tweet)
+#summary(source_tweet)
+#formula(source_tweet)
 
-unique(model_summary$term)
+
 #Cleaning and merging the required features with the source tweet
 notes_ratings_w_factors <- notes_ratings%>%
     mutate(
@@ -443,9 +444,9 @@ notes_ratings_w_factors <- notes_ratings%>%
     select(noteId, classification,helpfulness_ratio, word_count, trustworthySources, helpful)
 
 
-str(notes_ratings_w_factors)
+#str(notes_ratings_w_factors)
 source_w_notes_ratings <- left_join(notes_ratings_w_factors, source_tweet, by= "noteId")
-str(source_w_notes_ratings) 
+#str(source_w_notes_ratings) 
 
 
 
@@ -507,7 +508,7 @@ model_summary %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 
 
-table(source_w_notes_ratings$source_verified)
+#table(source_w_notes_ratings$source_verified)
 
 
 ```
@@ -515,5 +516,31 @@ table(source_w_notes_ratings$source_verified)
 <br><br>
 
 ### Conclusion
+This replication study confirms key findings from the original Birdwatch paper, demonstrating that community-driven fact-checking is a viable strategy for addressing misinformation on social media. By analyzing notes and ratings from early 2021, the paper could talk about how helpfulness ratings tend to surface high-quality community notes, consensus is stronger on non-political topics, and a small number of highly active contributors dominate the platform’s activity.
 
-This replication study confirms key findings from the original Birdwatch paper, demonstrating that community-driven fact-checking is a viable strategy for addressing misinformation on social media. By analyzing notes and ratings from early 2021, we observed patterns consistent with the original research — including the frequent use of trustworthy sources, the impact of note clarity and tone on perceived helpfulness, and differences in how users respond to misleading versus accurate content.
+Since the publication of the original paper, Birdwatch has evolved into Community Notes on X (formerly Twitter). While the core principles remain—crowdsourced fact-checking and cross-perspective agreement—the platform now uses additional algorithms and visibility rules (e.g., requiring diverse perspectives for notes to be shown publicly). This evolution reflects both the promise and the challenge of decentralized fact-checking systems.
+
+As the author originally noted, and our replication confirms, key limitations persist:
+
+1. Contributor imbalance: A few users still produce most notes, raising questions about representativeness and potential groupthink.
+
+2. Ideological polarization: Notes on political or controversial topics often fail to achieve consensus, especially when users rate them as “opinionated” or “argumentative.”
+
+3. Trust and perception: Community Notes, like Birdwatch, runs the risk of being misunderstood or distrusted by users who see them as biased or inconsistent.
+
+### Recommendations
+Based on our replication and the evolution of Birdwatch into Community Notes on X, we suggest the following improvements:
+
+**Benchmark with Experts**
+Compare Community Notes with professional fact-checkers (e.g., PolitiFact, Snopes) to assess alignment in accuracy, speed, and scope.
+
+**Improve Contributor Diversity**
+Analyze ideological and demographic patterns in contributors to ensure a broader range of perspectives in note writing and rating.
+
+**Balance Participation**
+Reduce reliance on “super-contributors” by introducing fair incentive systems to encourage wider, more representative engagement.
+
+**Handle Political Content Transparently**
+Create clearer guidelines and consider showing multiple viewpoints for controversial topics rather than hiding notes that lack consensus.
+
+
