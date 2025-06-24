@@ -43,3 +43,14 @@ This will generate 05_final_report.html with all the results and figures.
 
 #### Optionally, you can view the rendered report [here](https://rpubs.com/shresthadrishya06/1325154).
 
+
+
+## Reproducibility
+All data used in this project is publicly available. The code in this repository is fully reproducible. The source_tweets.RData file was provided by the original author to facilitate the analysis. Running the provided scripts and R Markdown file will reproduce all results and figures.
+
+## Citation
+If you use this work, please cite the original paper:
+
+Nicolas Prollochs (2021).
+Community-Based Fact-Checking on Twitter’s Birdwatch Platform.
+https://arxiv.org/pdf/2104.07175
