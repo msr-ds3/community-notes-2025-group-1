@@ -17,10 +17,6 @@ ratings_jan23_to_july31.tsv: 03_download_ratings_data.sh 04_filter_ratings_data.
 05_final_report.Rmd: notes_jan23_to_july31.tsv ratings_jan23_to_july31.tsv
 
 
-06_final_report.html: 05_final_report.Rmd
-	Rscript -e "rmarkdown::render('05_final_report.Rmd')"
-
-
 # Clean up intermediate files
 clean:
 	rm -f notes_jan23_to_july31.tsv ratings_jan23_to_july31.tsv
